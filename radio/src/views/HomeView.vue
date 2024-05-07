@@ -1,16 +1,6 @@
-<script setup>
-import { VideoPlayer } from 'vue-hls-video-player';
-
-function processPause(progress) {
-  console.log(progress)
-}
-</script>
-
-
 <template>
   <div class="radio-wrapper">
     <v-container>
-      <h1 style="color: white;">Radio</h1>
       <br>
       <!-- Search bar -->
       <v-row>
@@ -21,11 +11,13 @@ function processPause(progress) {
         </v-col>
         <!-- Combobox per i paesi -->
         <v-col cols="6">
-          <v-combobox v-model="selectedCountry" :items="countries" label="Paese" dense outlined hide-details></v-combobox>
+          <v-combobox v-model="selectedCountry" :items="europeanCountries" label="Paese" dense outlined hide-details
+            @change="filterRadiosByCountry" menu-props="{ openOnClick: true }"></v-combobox>
         </v-col>
       </v-row>
+      <br><br>
       <v-row>
-        <v-col v-for="(radio, index) in filteredRadios" :key="index" cols="12" sm="6" md="6">
+        <v-col v-for="(radio, index) in filteredRadios" :key="index" cols="12" sm="6" md="4">
           <v-card class="radio-card">
             <v-row no-gutters>
               <v-col cols="8">
@@ -38,21 +30,16 @@ function processPause(progress) {
                   <div class="text-center align-end"
                     style="position: absolute; bottom: 0; width: 60%; margin-bottom: 30px;">
 
-                    <!--Bottone preferiti-->
-                    <v-btn class="mr-2" icon @click="toggleFavorite(radio)" :color="isFavorite(radio) ? 'red' : ''">
-                      <v-icon v-if="isFavorite(radio)" :color="isPlaying(radio) ? 'white' : ''">mdi-heart</v-icon>
-                      <v-icon v-else>mdi-heart-outline</v-icon>
-                    </v-btn>
-
-                    <!--bottone pause-->
-                    <v-btn class="mr-2" icon @click="togglePlayPause(radio)" :color="isPlaying(radio) ? 'blue' : ''">
+                    <!--bottone play/pause-->
+                    <v-btn class="mr-2" icon @click="togglePlayPause(radio)" :color="isPlaying(radio) ? 'green' : ''">
                       <v-icon v-if="isPlaying(radio)">mdi-pause</v-icon>
                       <v-icon v-else>mdi-play</v-icon>
                     </v-btn>
 
-                    <!--Bottone stop-->
-                    <v-btn icon @click="stopRadio(radio)" :color="isPlaying(radio) ? 'blue' : ''">
-                      <v-icon>mdi-stop</v-icon>
+                    <!--Bottone preferiti-->
+                    <v-btn class="mr-2" icon @click="toggleFavorite(radio)" :color="isFavorite(radio) ? 'red' : ''">
+                      <v-icon v-if="isFavorite(radio)" :color="isPlaying(radio) ? 'white' : ''">mdi-heart</v-icon>
+                      <v-icon v-else>mdi-heart-outline</v-icon>
                     </v-btn>
 
                     <!--PLAYER PER USARE I FILE M3U8-->
@@ -101,6 +88,7 @@ export default {
         controls: true,
         autoplay: false,
         muted: false,
+        europeanCountries: ['Italia', 'Francia', 'Germania', 'Spagna', 'Regno Unito', 'Portogallo', 'Olanda', 'Svezia', 'Danimarca', 'Norvegia', 'Finlandia', 'Belgio', 'Austria', 'Svizzera', 'Grecia', 'Polonia', 'Repubblica Ceca', 'Ungheria', 'Romania', 'Bulgaria', 'Croazia', 'Slovenia', 'Slovacchia', 'Estonia', 'Lettonia', 'Lituania', 'Irlanda', 'Islanda', 'Luxembourg', 'Malta', 'Cipro', 'Liechtenstein', 'Monaco', 'San Marino', 'Vaticano']
       },
     }
   },
@@ -114,7 +102,21 @@ export default {
         });
     },
     getFaviconUrl(radio) {
-      return radio.favicon || '/image.png';
+      return radio.favicon || '/si.png';
+    },
+    playOrPauseRadio(radio) {
+      if (this.isPlaying(radio)) {
+        this.stopRadio();
+      } else {
+        this.playRadio(radio);
+      }
+    },
+    filterRadiosByCountry() {
+      if (this.selectedCountry) {
+        this.filteredRadios = this.radios.filter(radio => radio.country.toLowerCase() === this.selectedCountry.toLowerCase());
+      } else {
+        this.filteredRadios = this.radios;
+      }
     },
     playRadio(radio) {
       this.stopRadio(); // Interrompi la radio attualmente in riproduzione
@@ -132,7 +134,6 @@ export default {
         this.audio.play();
       }
     },
-
     stopRadio() {
       if (this.audio instanceof Audio) {
         this.audio.pause();
@@ -154,9 +155,6 @@ export default {
         this.playRadio(radio);
       }
     },
-    isPlaying(radio) {
-      return this.selectedRadio === radio && this.audio && !this.audio.paused;
-    },
     toggleFavorite(radio) {
       const index = this.favorites.findIndex(fav => fav.url === radio.url);
       if (index !== -1) {
@@ -169,11 +167,18 @@ export default {
     isFavorite(radio) {
       return this.favorites.some(fav => fav.url === radio.url);
     },
+    isPlaying(radio) {
+      return this.selectedRadio === radio && this.audio && !this.audio.paused;
+    },
   },
   created() {
     this.getRadios();
     const favorites = localStorage.getItem('favorites');
     this.favorites = favorites ? JSON.parse(favorites) : [];
+    window.addEventListener('beforeunload', this.stopRadio); // Stoppa la radio prima di passare ad un'altra pagina
+  },
+  beforeUnmount() {
+    window.removeEventListener('beforeunload', this.stopRadio); // Rimuove l'event listener prima di smontare il componente
   },
   setup() {
     const display = useDisplay();
@@ -203,6 +208,24 @@ body {
 
 .radio-card {
   height: 185px;
+  /* Altezza originale */
   background-color: rgb(0, 0, 0);
+  position: relative;
+  /* Imposta la posizione relativa per consentire il posizionamento dell'immagine */
+}
+
+.radio-card v-img {
+  position: absolute;
+  /* Imposta la posizione assoluta per consentire il posizionamento dell'immagine */
+  top: 0;
+  /* Posiziona l'immagine all'inizio della card */
+  left: 0;
+  /* Posiziona l'immagine all'inizio della card */
+  width: 100%;
+  /* Occupa tutta la larghezza della card */
+  height: 100%;
+  /* Occupa tutta l'altezza della card */
+  object-fit: cover;
+  /* Scala l'immagine per coprire completamente il contenitore mantenendo l'aspect ratio */
 }
 </style>

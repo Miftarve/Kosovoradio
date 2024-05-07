@@ -1,15 +1,15 @@
 <template>
   <nav>
-    <h1 style="color: white;">RADIO VELIQI</h1>
+    <h1 style="color: white; font-size: 3.5em;">𝓡𝓐𝓓𝓘𝓞 𝓥𝓔𝓛𝓘𝓠𝓘</h1>
     <div class="nav-buttons">
       <div class="nav-item">
-        <router-link to="/">Home</router-link>
+        <router-link to="/">𝗛𝗼𝗺𝗲</router-link>
       </div>
       <div class="nav-item">
-        <router-link to="/about">Preferiti</router-link>
+        <router-link to="/about">𝗣𝗿𝗲𝗳𝗲𝗿𝗶𝘁𝗶</router-link>
       </div>
       <div class="nav-item">
-        <router-link to="/3DWould">Mappa</router-link>
+        <router-link to="/World">𝗠𝗮𝗽𝗽𝗮</router-link>
       </div>
     </div>
   </nav>

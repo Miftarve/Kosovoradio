@@ -154,7 +154,7 @@ body {
 
 body{
   /*background-color: #1B3659;*/
-  background-color: #1B3659;
+  background-color: #000000;
 }
 .radio-card {
   height: 185px;
@@ -162,7 +162,7 @@ body{
 }
 
 .radio-wrapper{
-  background-color: rgb(3, 162, 202);
+  background-color: rgb(0, 0, 0);
 }
 
 .active-radio {

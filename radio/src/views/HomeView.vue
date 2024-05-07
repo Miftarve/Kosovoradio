@@ -13,11 +13,19 @@ function processPause(progress) {
       <h1 style="color: white;">Radio</h1>
       <br>
       <!-- Search bar -->
-      <v-text-field v-model="search" label="Cerca" prepend-inner-icon="mdi-magnify" variant="outlined" hide-details
-        single-line @input="filterRadios"></v-text-field>
-
       <v-row>
-        <v-col v-for="(radio, index) in filteredRadios" :key="index" cols="12" sm="6" md="4">
+        <!-- Campo di ricerca -->
+        <v-col cols="6">
+          <v-text-field v-model="search" label="Cerca" prepend-inner-icon="mdi-magnify" variant="outlined" hide-details
+            single-line dense @input="filterRadios"></v-text-field>
+        </v-col>
+        <!-- Combobox per i paesi -->
+        <v-col cols="6">
+          <v-combobox v-model="selectedCountry" :items="countries" label="Paese" dense outlined hide-details></v-combobox>
+        </v-col>
+      </v-row>
+      <v-row>
+        <v-col v-for="(radio, index) in filteredRadios" :key="index" cols="12" sm="6" md="6">
           <v-card class="radio-card">
             <v-row no-gutters>
               <v-col cols="8">
@@ -195,5 +203,6 @@ body {
 
 .radio-card {
   height: 185px;
+  background-color: rgb(0, 0, 0);
 }
 </style>

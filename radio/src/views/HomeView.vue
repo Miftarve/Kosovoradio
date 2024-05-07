@@ -176,26 +176,21 @@ export default {
 
 <style>
 body {
-  /*background-color: #1B3659;*/
-  background-color: #1B3659;
+  background-color: #000000;
 }
 
 .radio-wrapper {
   margin-right: 5%;
   margin-left: 5%;
-  background-color: rgb(3, 162, 202);
+  background-color: rgb(0, 0, 0);
   border-radius: 20px;
 }
 
 .v-text-field {
-  margin-bottom: 20px;
+  margin-bottom: 10px;
   border-radius: 20px;
   border: none;
   background-color: white;
-}
-
-.v-text-field:hover {
-  animation: none;
 }
 
 .radio-card {

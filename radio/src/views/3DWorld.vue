@@ -178,12 +178,11 @@ export default {
         },
         async getRadios() {
             try {
-                this.radios = await this.fetchRadios();
-                this.radios.forEach(radio => {
+                const data = await this.fetchRadios();
+                data.forEach(radio => {
                     this.addMarker(radio.geo_long, radio.geo_lat, radio);
-                    radio.playing = false;
-                    radio.audioPlayer = new Audio();
                 });
+                this.radios = data;
                 this.retrieveFavorites();
             } catch (error) {
                 console.error('Error fetching radios:', error);

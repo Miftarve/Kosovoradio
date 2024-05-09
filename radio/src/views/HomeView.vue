@@ -18,7 +18,7 @@
       <br><br>
       <v-row>
         <v-col v-for="(radio, index) in filteredRadios" :key="index" cols="12" sm="6" md="4">
-          <v-card class="radio-card">
+          <v-card :class="{ 'playing': isPlaying(radio) }" class="radio-card">
             <v-row no-gutters>
               <v-col cols="8">
                 <v-card-title>{{ radio.name }}</v-card-title>
@@ -27,9 +27,16 @@
                   <p>{{ radio.tags }}</p>
                   <p>{{ radio.country }}</p>
 
+                  <!-- Aggiungi l'animazione dell'onda sonora -->
+                  <div v-if="isPlaying(radio)" class="sound-wave">
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                    <div class="bar"></div>
+                  </div>
+
                   <div class="text-center align-end"
                     style="position: absolute; bottom: 0; width: 60%; margin-bottom: 30px;">
-
                     <!--bottone play/pause-->
                     <v-btn class="mr-2" icon @click="togglePlayPause(radio)" :color="isPlaying(radio) ? 'green' : ''">
                       <v-icon v-if="isPlaying(radio)">mdi-pause</v-icon>
@@ -45,7 +52,6 @@
                     <!--PLAYER PER USARE I FILE M3U8-->
                     <VideoPlayer type="default" @pause="processPause" :link="radio.url" :progress="30" :isMuted="false"
                       :isControls="true" class="customClassName" v-if="radio.hls == '1'" />
-
                   </div>
                 </v-card-text>
               </v-col>
@@ -58,10 +64,6 @@
           </v-card>
         </v-col>
       </v-row>
-
-      <!-- Aggiungi il componente VideoPlayer per i file M3U8 -->
-
-
     </v-container>
   </div>
 </template>
@@ -83,7 +85,8 @@ export default {
       audio: null,
       sheet: false,
       selectedRadio: null,
-      favorites: [], // Aggiunto per gestire i preferiti
+      favorites: [],
+      isRadioPlaying: false, // Nuova proprietà per tenere traccia dello stato di riproduzione
       videoOptions: {
         controls: true,
         autoplay: false,
@@ -122,6 +125,7 @@ export default {
       this.stopRadio(); // Interrompi la radio attualmente in riproduzione
       this.sheet = true;
       this.selectedRadio = radio;
+      this.isRadioPlaying = true; // Imposta lo stato di riproduzione su true
 
       // Se il formato è M3U8, utilizza il VideoPlayer
       if (radio.hls === 1) {
@@ -140,7 +144,11 @@ export default {
         this.audio = null; // Resetta l'elemento audio
       }
       this.sheet = false;
+      this.isRadioPlaying = false;
     },
+    beforeUnmount() {
+    this.stopRadio();
+  },
     filterRadios() {
       if (!this.search) {
         this.filteredRadios = this.radios;
@@ -208,24 +216,65 @@ body {
 
 .radio-card {
   height: 185px;
-  /* Altezza originale */
   background-color: rgb(0, 0, 0);
   position: relative;
-  /* Imposta la posizione relativa per consentire il posizionamento dell'immagine */
+}
+
+.radio-card.playing {
+  border: 2px solid red;
 }
 
 .radio-card v-img {
   position: absolute;
-  /* Imposta la posizione assoluta per consentire il posizionamento dell'immagine */
   top: 0;
-  /* Posiziona l'immagine all'inizio della card */
   left: 0;
-  /* Posiziona l'immagine all'inizio della card */
   width: 100%;
-  /* Occupa tutta la larghezza della card */
   height: 100%;
-  /* Occupa tutta l'altezza della card */
   object-fit: cover;
-  /* Scala l'immagine per coprire completamente il contenitore mantenendo l'aspect ratio */
+}
+
+.sound-wave {
+  display: flex;
+  align-items: center;
+  height: 20px;
+  margin-left: 10px;
+  margin-top: 2px;
+}
+
+
+.bar {
+  width: 4px;
+  height: 100%;
+  margin: 0 2px;
+  background-color: red; /* Cambia il colore di sfondo */
+  animation: pulse 0.8s infinite ease-in-out alternate;
+}
+
+.bar:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.bar:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.bar:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+.bar:nth-child(4) {
+  animation-delay: 0.3s;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scaleY(1);
+  }
+
+  100% {
+    transform: scaleY(1.5);
+  }
 }
 </style>
+
+

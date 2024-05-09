@@ -11,8 +11,8 @@
         </v-col>
         <!-- Combobox per i paesi -->
         <v-col cols="6">
-          <v-combobox v-model="selectedCountry" :items="europeanCountries" label="Paese" dense outlined hide-details
-            @change="filterRadiosByCountry" menu-props="{ openOnClick: true }"></v-combobox>
+          <v-combobox v-model="videoOptions.selectedCountry" :items="videoOptions.europeanCountries" label="Paese" dense
+            outlined hide-details @change="filterRadiosByCountry"></v-combobox>
         </v-col>
       </v-row>
       <br><br>
@@ -70,13 +70,9 @@
 
 <script>
 import { useDisplay } from 'vuetify';
-//import VideoPlayer from 'vue-hls-video-player';
 
 export default {
   name: 'HomeView',
-  components: {
-    //VideoPlayer
-  },
   data() {
     return {
       radios: [],
@@ -86,12 +82,13 @@ export default {
       sheet: false,
       selectedRadio: null,
       favorites: [],
-      isRadioPlaying: false, // Nuova proprietà per tenere traccia dello stato di riproduzione
+      isRadioPlaying: false,
       videoOptions: {
         controls: true,
         autoplay: false,
         muted: false,
-        europeanCountries: ['Italia', 'Francia', 'Germania', 'Spagna', 'Regno Unito', 'Portogallo', 'Olanda', 'Svezia', 'Danimarca', 'Norvegia', 'Finlandia', 'Belgio', 'Austria', 'Svizzera', 'Grecia', 'Polonia', 'Repubblica Ceca', 'Ungheria', 'Romania', 'Bulgaria', 'Croazia', 'Slovenia', 'Slovacchia', 'Estonia', 'Lettonia', 'Lituania', 'Irlanda', 'Islanda', 'Luxembourg', 'Malta', 'Cipro', 'Liechtenstein', 'Monaco', 'San Marino', 'Vaticano']
+        europeanCountries: ['Italia', 'Francia', 'Germania', 'Spagna', 'Regno Unito', 'Portogallo', 'Olanda', 'Svezia', 'Danimarca', 'Norvegia', 'Finlandia', 'Belgio', 'Austria', 'Svizzera', 'Grecia', 'Polonia', 'Repubblica Ceca', 'Ungheria', 'Romania', 'Bulgaria', 'Croazia', 'Slovenia', 'Slovacchia', 'Estonia', 'Lettonia', 'Lituania', 'Irlanda', 'Islanda', 'Luxembourg', 'Malta', 'Cipro', 'Liechtenstein', 'Monaco', 'San Marino', 'Vaticano'],
+        selectedCountry: ''
       },
     }
   },
@@ -147,8 +144,8 @@ export default {
       this.isRadioPlaying = false;
     },
     beforeUnmount() {
-    this.stopRadio();
-  },
+      this.stopRadio();
+    },
     filterRadios() {
       if (!this.search) {
         this.filteredRadios = this.radios;
@@ -183,10 +180,10 @@ export default {
     this.getRadios();
     const favorites = localStorage.getItem('favorites');
     this.favorites = favorites ? JSON.parse(favorites) : [];
-    window.addEventListener('beforeunload', this.stopRadio); // Stoppa la radio prima di passare ad un'altra pagina
+    window.addEventListener('beforeunload', this.stopRadio);
   },
   beforeUnmount() {
-    window.removeEventListener('beforeunload', this.stopRadio); // Rimuove l'event listener prima di smontare il componente
+    window.removeEventListener('beforeunload', this.stopRadio);
   },
   setup() {
     const display = useDisplay();
@@ -246,7 +243,8 @@ body {
   width: 4px;
   height: 100%;
   margin: 0 2px;
-  background-color: red; /* Cambia il colore di sfondo */
+  background-color: red;
+  /* Cambia il colore di sfondo */
   animation: pulse 0.8s infinite ease-in-out alternate;
 }
 
@@ -276,5 +274,3 @@ body {
   }
 }
 </style>
-
-

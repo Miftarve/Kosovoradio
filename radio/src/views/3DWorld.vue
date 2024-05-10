@@ -225,6 +225,17 @@ export default {
             const data = await response.json();
             return data;
         },
+        async getRadiosByCountry(country) {
+            try {
+                const response = await fetch(`https://de1.api.radio-browser.info/json/stations/search?limit=700&hidebroken=true&has_geo_info=true&order=clickcount&reverse=true&country=${country}`);
+                const data = await response.json();
+                console.log('Data received from API:', data); // Aggiungi questo log per visualizzare i dati ricevuti dalla chiamata API
+                return data;
+            } catch (error) {
+                console.error('Error fetching radios by country:', error);
+                throw error;
+            }
+        },
 
         // Funzione per ottenere le radio e aggiungere i marker sulla mappa
         async getRadios() {

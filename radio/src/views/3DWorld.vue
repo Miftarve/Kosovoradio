@@ -22,7 +22,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import earthTexture from '../assets/8k_earth_daymap.jpg';
 import Hls from 'hls.js';
-import defaultImage from '../assets/radio.png';
+import defaultImage from '../assets/radio1.png';
 
 export default {
     name: 'ThreeJsScene',

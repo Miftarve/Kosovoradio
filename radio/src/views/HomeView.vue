@@ -102,7 +102,7 @@ export default {
         });
     },
     getFaviconUrl(radio) {
-      return radio.favicon || '/si.png';
+      return radio.favicon || '/radio1.jpg';
     },
     playOrPauseRadio(radio) {
       if (this.isPlaying(radio)) {

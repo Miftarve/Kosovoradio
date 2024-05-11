@@ -2,7 +2,7 @@
   <div class="radio-wrapper">
     <v-container>
       <br>
-      <!-- Search bar -->
+      <!-- Barra di ricerca -->
       <v-row>
         <!-- Campo di ricerca -->
         <v-col cols="6">
@@ -11,23 +11,24 @@
         </v-col>
         <!-- Combobox per i paesi -->
         <v-col cols="6">
-          <v-combobox v-model="videoOptions.selectedCountry" :items="videoOptions.europeanCountries" label="Paese" dense
-            outlined hide-details @change="filterRadiosByCountry"></v-combobox>
+          <v-combobox v-model="selectedTags" :items="allTags" label="Seleziona tag" multiple chips dense outlined hide-details></v-combobox>
         </v-col>
       </v-row>
       <br><br>
       <v-row>
+        <!-- Iterazione su tutte le radio filtrate -->
         <v-col v-for="(radio, index) in filteredRadios" :key="index" cols="12" sm="6" md="4">
           <v-card :class="{ 'playing': isPlaying(radio) }" class="radio-card">
             <v-row no-gutters>
               <v-col cols="8">
+                <!-- Titolo della radio -->
                 <v-card-title>{{ radio.name }}</v-card-title>
                 <v-card-text>
-                  <!-- Add other radio details if necessary -->
+                  <!-- Altri dettagli della radio se necessario -->
                   <p>{{ radio.tags }}</p>
                   <p>{{ radio.country }}</p>
 
-                  <!-- Aggiungi l'animazione dell'onda sonora -->
+                  <!-- Animazione dell'onda sonora -->
                   <div v-if="isPlaying(radio)" class="sound-wave">
                     <div class="bar"></div>
                     <div class="bar"></div>
@@ -35,26 +36,28 @@
                     <div class="bar"></div>
                   </div>
 
+                  <!-- Controlli audio -->
                   <div class="text-center align-end"
                     style="position: absolute; bottom: 0; width: 60%; margin-bottom: 30px;">
-                    <!--bottone play/pause-->
+                    <!-- Bottone play/pause -->
                     <v-btn class="mr-2" icon @click="togglePlayPause(radio)" :color="isPlaying(radio) ? 'green' : ''">
                       <v-icon v-if="isPlaying(radio)">mdi-pause</v-icon>
                       <v-icon v-else>mdi-play</v-icon>
                     </v-btn>
 
-                    <!--Bottone preferiti-->
+                    <!-- Bottone preferiti -->
                     <v-btn class="mr-2" icon @click="toggleFavorite(radio)" :color="isFavorite(radio) ? 'red' : ''">
                       <v-icon v-if="isFavorite(radio)" :color="isPlaying(radio) ? 'white' : ''">mdi-heart</v-icon>
                       <v-icon v-else>mdi-heart-outline</v-icon>
                     </v-btn>
 
-                    <!--PLAYER PER USARE I FILE M3U8-->
+                    <!-- Player per i file M3U8 -->
                     <VideoPlayer type="default" @pause="processPause" :link="radio.url" :progress="30" :isMuted="false"
                       :isControls="true" class="customClassName" v-if="radio.hls == '1'" />
                   </div>
                 </v-card-text>
               </v-col>
+              <!-- Immagine della radio -->
               <v-col cols="4">
                 <a :href="radio.homepage" target="_blank">
                   <v-img :src="getFaviconUrl(radio)" aspect-ratio="1/1" style="margin: 10px;"></v-img>
@@ -90,27 +93,63 @@ export default {
         europeanCountries: ['Italia', 'Francia', 'Germania', 'Spagna', 'Regno Unito', 'Portogallo', 'Olanda', 'Svezia', 'Danimarca', 'Norvegia', 'Finlandia', 'Belgio', 'Austria', 'Svizzera', 'Grecia', 'Polonia', 'Repubblica Ceca', 'Ungheria', 'Romania', 'Bulgaria', 'Croazia', 'Slovenia', 'Slovacchia', 'Estonia', 'Lettonia', 'Lituania', 'Irlanda', 'Islanda', 'Luxembourg', 'Malta', 'Cipro', 'Liechtenstein', 'Monaco', 'San Marino', 'Vaticano'],
         selectedCountry: ''
       },
+      selectedTags: [],
+      allTags: [],
     }
   },
-  methods: {
+  computed: {
+    // Radio filtrate per tag selezionati
+    filteredRadiosByTags() {
+      if (this.selectedTags.length === 0) {
+        return this.filteredRadios;
+      }
+      return this.filteredRadios.filter(radio => {
+        const radioTags = radio.tags ? radio.tags.split(/[,\s]+/).map(tag => tag.trim()) : [];
+        return this.selectedTags.every(tag => radioTags.includes(tag));
+      });
+    },
+  },
+  watch: {
+  selectedTags: {
+    handler: 'filterRadiosByTags',
+    immediate: true // Questo attiverà immediatamente l'handler al montaggio del componente
+  }
+},
+
+methods: {
+  // Filtra le radio per tag selezionati
+  filterRadiosByTags() {
+    console.log('filterRadiosByTags chiamato');
+    if (this.selectedTags.length === 0) {
+      this.filteredRadios = this.radios;
+      return;
+    }
+    this.filteredRadios = this.radios.filter(radio => {
+      const radioTags = radio.tags ? radio.tags.split(/[,\s]+/).map(tag => tag.trim()) : [];
+      return this.selectedTags.every(tag => radioTags.includes(tag));
+    });
+  },
+    // Ottieni elenco di radio
     getRadios() {
       fetch('https://nl1.api.radio-browser.info/json/stations/search?limit=100&countrycode=IT&hidebroken=true&order=clickcount&reverse=true')
         .then(response => response.json())
         .then(data => {
           this.radios = data;
           this.filteredRadios = data;
+          this.createTags();
         });
     },
-    getFaviconUrl(radio) {
-      return radio.favicon || '/radio1.jpg';
+    // Crea elenco di tag da tutte le radio
+    createTags() {
+      this.allTags = this.radios.reduce((tags, radio) => {
+        if (radio.tags) {
+          tags.push(...radio.tags.split(/[,\s]+/).map(tag => tag.trim()));
+        }
+        return tags;
+      }, []);
+      this.allTags = [...new Set(this.allTags)].sort();
     },
-    playOrPauseRadio(radio) {
-      if (this.isPlaying(radio)) {
-        this.stopRadio();
-      } else {
-        this.playRadio(radio);
-      }
-    },
+    // Filtra le radio per paese selezionato
     filterRadiosByCountry() {
       if (this.selectedCountry) {
         this.filteredRadios = this.radios.filter(radio => radio.country.toLowerCase() === this.selectedCountry.toLowerCase());
@@ -118,6 +157,19 @@ export default {
         this.filteredRadios = this.radios;
       }
     },
+    // Ottieni URL favicon della radio
+    getFaviconUrl(radio) {
+      return radio.favicon || '/radio1.jpg';
+    },
+    // Avvia o metti in pausa la radio
+    playOrPauseRadio(radio) {
+      if (this.isPlaying(radio)) {
+        this.stopRadio();
+      } else {
+        this.playRadio(radio);
+      }
+    },
+    // Avvia la riproduzione della radio
     playRadio(radio) {
       this.stopRadio(); // Interrompi la radio attualmente in riproduzione
       this.sheet = true;
@@ -135,6 +187,7 @@ export default {
         this.audio.play();
       }
     },
+    // Interrompi la riproduzione della radio
     stopRadio() {
       if (this.audio instanceof Audio) {
         this.audio.pause();
@@ -143,9 +196,11 @@ export default {
       this.sheet = false;
       this.isRadioPlaying = false;
     },
+    // Prima del smontaggio del componente, interrompi la radio
     beforeUnmount() {
       this.stopRadio();
     },
+    // Filtra le radio per il testo di ricerca
     filterRadios() {
       if (!this.search) {
         this.filteredRadios = this.radios;
@@ -153,6 +208,7 @@ export default {
       }
       this.filteredRadios = this.radios.filter(radio => radio.name.toLowerCase().includes(this.search.toLowerCase()));
     },
+    // Attiva o disattiva la riproduzione della radio
     togglePlayPause(radio) {
       if (this.isPlaying(radio)) {
         this.stopRadio();
@@ -160,6 +216,7 @@ export default {
         this.playRadio(radio);
       }
     },
+    // Aggiungi o rimuovi dalle radio preferite
     toggleFavorite(radio) {
       const index = this.favorites.findIndex(fav => fav.url === radio.url);
       if (index !== -1) {
@@ -169,9 +226,11 @@ export default {
       }
       localStorage.setItem('favorites', JSON.stringify(this.favorites));
     },
+    // Verifica se una radio è tra le preferite
     isFavorite(radio) {
       return this.favorites.some(fav => fav.url === radio.url);
     },
+    // Verifica se una radio è in riproduzione
     isPlaying(radio) {
       return this.selectedRadio === radio && this.audio && !this.audio.paused;
     },
@@ -182,6 +241,7 @@ export default {
     this.favorites = favorites ? JSON.parse(favorites) : [];
     window.addEventListener('beforeunload', this.stopRadio);
   },
+  // Prima del smontaggio del componente, rimuovi l'ascoltatore di evento
   beforeUnmount() {
     window.removeEventListener('beforeunload', this.stopRadio);
   },
@@ -191,6 +251,7 @@ export default {
   }
 }
 </script>
+
 
 <style>
 body {
@@ -238,13 +299,11 @@ body {
   margin-top: 2px;
 }
 
-
 .bar {
   width: 4px;
   height: 100%;
   margin: 0 2px;
   background-color: red;
-  /* Cambia il colore di sfondo */
   animation: pulse 0.8s infinite ease-in-out alternate;
 }
 

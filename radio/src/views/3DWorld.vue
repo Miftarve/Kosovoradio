@@ -1,33 +1,19 @@
-<!-- Questo template rappresenta l'interfaccia grafica dell'applicazione -->
 <template>
-    <!-- Il container della scena 3D renderizzata con Three.js -->
-    <div ref="container"></div>
-
-    <!-- La barra di navigazione che mostra le informazioni sulla radio selezionata -->
+    <!-- Titolo della pagina -->
+    <div class="text-h2">WORLD RADIO</div><br>
+    <!-- Barra di navigazione -->
     <div class="navbar" v-if="selectedRadio">
-        <!-- Il logo della radio -->
-        <img :src="selectedRadio.favicon || defaultImage" class="radio-logo" alt="Radio logo">
-
-        <!-- Il nome della radio -->
+        <!-- Logo della radio -->
+        <img :src="getRadioImage(selectedRadio)" class="radio-logo" alt="Radio logo">
+        <!-- Nome della radio -->
         <h4>{{ selectedRadio.name }}</h4>
-
-        <!-- Il pulsante per avviare o mettere in pausa la riproduzione della radio -->
-        <button @click="togglePlayPause(selectedRadio)">{{ selectedRadio.playing ? 'Pause' : 'Play' }}</button>
-
-        <!-- L'animazione delle onde sonore che indica che la radio è in riproduzione -->
-        <div v-if="selectedRadio.playing" class="sound-wave">
-            <div class="bar"></div>
-            <div class="bar"></div>
-            <div class="bar"></div>
-            <div class="bar"></div>
-        </div>
-
-        <!-- Il pulsante per aggiungere o rimuovere la radio dai preferiti -->
-        <div @click="toggleFavorite(selectedRadio)" class="heart-container">
-            <div :class="['heart', { 'liked': selectedRadio.favorite }]">
-            </div>
-        </div>
+        <!-- Paese della radio -->
+        <h3>{{ selectedRadio.country }}</h3>
+        <!-- Pulsante per avviare o interrompere la riproduzione -->
+        <v-btn :icon="selectedRadio.playing ? 'mdi-stop' : 'mdi-play'" @click="togglePlayPause(selectedRadio)"></v-btn>
     </div>
+    <!-- Contenitore per il rendering della scena 3D -->
+    <div ref="container"></div>
 </template>
 
 <script>
@@ -38,99 +24,100 @@ import Hls from 'hls.js';
 import defaultImage from '../assets/radio.png';
 
 export default {
-    name: 'ThreeJsScene',
+    name: 'WorldView',
     data() {
         return {
-            // Inizializzazione delle variabili per la scena 3D
             camera: null,
             renderer: null,
             controls: null,
             earthRadius: 1,
-            radios: [],
+            radio: [],
             selectedRadio: null,
             defaultImage,
+            isFavorite: false
         };
     },
     mounted() {
-        // Inizializzazione della scena 3D
+        // Inizializza la scena 3D
         this.init();
+        // Avvia l'animazione
         this.animate();
-
-        // Recupero delle radio disponibili
+        // Ottiene le radio
         this.getRadios();
-
-        // Aggiunta degli eventi per il ridimensionamento della finestra e il click del mouse
+        // Aggiunge eventi per il ridimensionamento della finestra e per il click del mouse
         window.addEventListener('resize', this.handleWindowResize);
-        this.raycaster = new THREE.Raycaster();
-        this.mouse = new THREE.Vector2();
         window.addEventListener('click', this.onDocumentMouseClick);
     },
     beforeUnmount() {
-        // Rimozione degli eventi prima che il componente venga distrutto
+        // Rimuove gli event listener prima della disattivazione del componente
         window.removeEventListener('resize', this.handleWindowResize);
         window.removeEventListener('click', this.onDocumentMouseClick);
     },
     methods: {
-        // Inizializzazione della scena 3D con Three.js
+        // Inizializza la scena 3D
         init() {
-            // Inizializzazione della telecamera, del renderer e dei controlli
+            // Inizializza la camera
             this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            this.camera.position.z = 5;
+            this.camera.position.z = 2;
+
+            // Inizializza il renderer e imposta le dimensioni
             this.renderer = new THREE.WebGLRenderer();
-            this.renderer.setSize(window.innerWidth, window.innerHeight);
+            const width = window.innerWidth * 0.96; // Imposta la larghezza al 80% della finestra del browser
+            const height = window.innerHeight * 0.70; // Imposta l'altezza al 60% della finestra del browser
+            this.renderer.setSize(width, height);
             this.$refs.container.appendChild(this.renderer.domElement);
+
+            // Inizializza i controlli della scena
             this.controls = new OrbitControls(this.camera, this.renderer.domElement);
             this.controls.enableDamping = true;
 
-            // Creazione della sfera terrestre con la mappa
+            // Inizializza la scena
             const scene = new THREE.Scene();
-            const geometry = new THREE.SphereGeometry(this.earthRadius, 64, 64);
+
+            // Aggiunge la Terra alla scena
+            const geometry = new THREE.SphereGeometry(this.earthRadius, 64, 64); // Aumenta i segmenti per una superficie più liscia
             const texture = new THREE.TextureLoader().load(earthTexture);
             const material = new THREE.MeshPhongMaterial({ map: texture });
             const earth = new THREE.Mesh(geometry, material);
             scene.add(earth);
 
-            // Aggiunta delle luci alla scena
+            // Aggiunge luci alla scena
             const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
             scene.add(ambientLight);
             const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
             directionalLight.position.set(1, 1, 1).normalize();
             scene.add(directionalLight);
 
-            // Salvataggio della scena creata
+            // Imposta la scena
             this.scene = scene;
-        },
 
-        // Funzione per gestire il click del mouse sulla scena 3D
+            // Inizializza il raycaster e il vettore del mouse
+            this.raycaster = new THREE.Raycaster();
+            this.mouse = new THREE.Vector2();
+        },
+        // Gestisce il click del mouse sulla scena
         onDocumentMouseClick(event) {
+            // Impedisce l'azione predefinita del click
             event.preventDefault();
-            this.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-            this.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            // Calcola la posizione del mouse rispetto alla finestra
+            this.mouse.x = (event.offsetX / this.renderer.domElement.clientWidth) * 2 - 1;
+            this.mouse.y = -(event.offsetY / this.renderer.domElement.clientHeight) * 2 + 1;
+            // Imposta il raycaster e interseca gli oggetti nella scena
             this.raycaster.setFromCamera(this.mouse, this.camera);
             const intersects = this.raycaster.intersectObjects(this.scene.children);
 
+            // Se ci sono intersezioni
             if (intersects.length > 0) {
-                console.log('Clicked on:', intersects[0].object.userData);
+                // Gestisce il click sull'oggetto intersecato
                 this.handleMarkerClick(intersects[0]);
             }
         },
-
-        // Funzione per gestire il click sui marker nella scena 3D
+        // Gestisce il click su un marker nella scena 3D
         handleMarkerClick(intersectedObject) {
             if (intersectedObject.object.onClick) {
                 intersectedObject.object.onClick();
                 const previousRadio = this.selectedRadio;
                 this.selectedRadio = intersectedObject.object.userData;
-
-                // Reimpostazione del colore del marker precedentemente selezionato a rosso
-                if (previousRadio && previousRadio.marker) {
-                    previousRadio.marker.material.color.set(0xFF0000); // Rosso
-                }
-
-                // Cambio del colore del marker appena cliccato a giallo
-                intersectedObject.object.material.color.set(0xFFFF00); // Giallo
-
-                // Controllo se la radio selezionata ha un'URL audio e avvio il caricamento lazy dell'audio
                 this.$nextTick(() => {
                     if (this.selectedRadio.url_resolved || this.selectedRadio.url) {
                         this.lazyLoadAudio(this.selectedRadio);
@@ -141,14 +128,12 @@ export default {
                 });
             }
         },
-
-        // Funzione per il caricamento lazy dell'audio della radio selezionata
+        // Carica in modo pigro l'audio per la radio selezionata
         lazyLoadAudio(radio) {
-            console.log('Lazy loading audio for:', radio);
+            // Verifica se l'audioPlayer esiste già
             if (!radio.audioPlayer) {
-                console.log('Creating new audio player');
+                // Crea un nuovo audio player se non esiste
                 radio.audioPlayer = new Audio(radio.url_resolved || radio.url);
-                console.log('Audio player:', radio.audioPlayer);
                 radio.audioPlayer.onloadeddata = () => {
                     console.log('Audio loaded');
                 };
@@ -156,24 +141,20 @@ export default {
                     console.error('Error loading audio');
                 };
             }
-            else {
-                console.log('Audio player already exists');
-            }
         },
-        // Funzione per aggiungere un marker sulla sfera terrestre
+        // Aggiunge un marker alla scena 3D
         addMarker(longitude, latitude, radio) {
-            // Verifica se la longitudine e la latitudine non sono null
+            // Calcola le coordinate 3D dal longitudine e latitudine
             if (longitude !== null && latitude !== null) {
-                // Calcolo delle coordinate sferiche
                 const phi = (90 - latitude) * (Math.PI / 180);
                 const theta = (longitude + 180) * (Math.PI / 180);
                 const x = -this.earthRadius * Math.sin(phi) * Math.cos(theta);
                 const y = this.earthRadius * Math.cos(phi);
                 const z = this.earthRadius * Math.sin(phi) * Math.sin(theta);
 
-                // Creazione del marker visibile
+                // Crea il marker visibile
                 const geometry = new THREE.SphereGeometry(0.01, 32, 32);
-                const material = new THREE.MeshBasicMaterial({ color: 0xFF0000 }); // Rosso di default
+                const material = new THREE.MeshBasicMaterial({ color: 0xff0000 });
                 const marker = new THREE.Mesh(geometry, material);
                 marker.position.set(x, y, z);
                 marker.userData = radio;
@@ -182,11 +163,8 @@ export default {
                 };
                 this.scene.add(marker);
 
-                // Memorizzazione del marker nell'oggetto radio
-                radio.marker = marker;
-
-                // Creazione di una sfera invisibile per il click
-                const invisibleSphereGeometry = new THREE.SphereGeometry(0.4, 32, 32);
+                // Crea la sfera invisibile per migliorare l'interazione
+                const invisibleSphereGeometry = new THREE.SphereGeometry(0.015, 32, 32);
                 const invisibleSphereMaterial = new THREE.MeshBasicMaterial({ visible: false });
                 const invisibleSphere = new THREE.Mesh(invisibleSphereGeometry, invisibleSphereMaterial);
                 invisibleSphere.position.set(x, y, z);
@@ -197,12 +175,10 @@ export default {
                 console.error('Longitude or latitude is null');
             }
         },
-
-        // Funzione per l'animazione della scena 3D
+        // Animazione della scena 3D
         animate() {
             requestAnimationFrame(this.animate);
 
-            // Aggiornamento dei controlli e rendering della scena
             if (this.controls) {
                 this.controls.update();
             }
@@ -211,64 +187,47 @@ export default {
                 this.renderer.render(this.scene, this.camera);
             }
         },
-
-        // Funzione per gestire il ridimensionamento della finestra
+        // Gestisce il ridimensionamento della finestra
         handleWindowResize() {
             this.camera.aspect = window.innerWidth / window.innerHeight;
             this.camera.updateProjectionMatrix();
             this.renderer.setSize(window.innerWidth, window.innerHeight);
         },
-
-        // Funzione per ottenere i dati delle radio
+        // Recupera le radio dalla fonte dati
         async fetchRadios() {
-            const response = await fetch('https://de1.api.radio-browser.info/json/stations/search?limit=700&hidebroken=true&has_geo_info=true&order=clickcount&reverse=true');
+            const response = await fetch('https://de1.api.radio-browser.info/json/stations/search?limit=400&hidebroken=true&has_geo_info=true&order=clickcount&reverse=true');
             const data = await response.json();
             return data;
         },
-        async getRadiosByCountry(country) {
-            try {
-                const response = await fetch(`https://de1.api.radio-browser.info/json/stations/search?limit=700&hidebroken=true&has_geo_info=true&order=clickcount&reverse=true&country=${country}`);
-                const data = await response.json();
-                console.log('Data received from API:', data); // Aggiungi questo log per visualizzare i dati ricevuti dalla chiamata API
-                return data;
-            } catch (error) {
-                console.error('Error fetching radios by country:', error);
-                throw error;
-            }
-        },
-
-        // Funzione per ottenere le radio e aggiungere i marker sulla mappa
+        // Ottiene le radio e aggiunge i marker alla scena 3D
         async getRadios() {
             try {
-                this.radios = await this.fetchRadios();
-                this.radios.forEach(radio => {
+                this.radio = await this.fetchRadios();
+                this.radio.forEach(radio => {
                     this.addMarker(radio.geo_long, radio.geo_lat, radio);
                     radio.playing = false;
                     radio.audioPlayer = new Audio();
                 });
-                this.retrieveFavorites();
             } catch (error) {
                 console.error('Error fetching radios:', error);
             }
         },
-        // Funzione per avviare o mettere in pausa la riproduzione della radio
+        // Gestisce il toggle tra play e pausa per una radio
         togglePlayPause(radio) {
             if (radio.playing) {
                 this.pauseRadio(radio);
             } else {
-                this.pauseAllRadios(); // Metti in pausa tutte le altre radio
+                this.pauseAllRadios(); // Interrompe tutte le altre radio
                 this.playRadio(radio);
             }
         },
-
-        // Funzione per avviare la riproduzione della radio
+        // Avvia la riproduzione audio per una radio
         playRadio(radio) {
-            console.log('playRadio called', radio);
+            // Carica l'URL dell'audio
             const audioUrl = radio.url_resolved || radio.url;
-            console.log('Audio URL:', audioUrl);
+            // Verifica se l'URL è HLS e se il browser lo supporta
             if (audioUrl.includes('m3u8')) {
                 if (Hls.isSupported()) {
-                    console.log('HLS is supported');
                     const hls = new Hls();
                     hls.loadSource(audioUrl);
                     hls.attachMedia(radio.audioPlayer);
@@ -276,10 +235,9 @@ export default {
                     console.error('HLS is not supported in this browser.');
                 }
             } else {
-                console.log('Setting audio source:', audioUrl);
+                // Imposta l'URL dell'audio e avvia la riproduzione
                 radio.audioPlayer.src = audioUrl;
             }
-            // Avvio della riproduzione dell'audio
             radio.audioPlayer.play()
                 .then(() => {
                     console.log('Audio started playing');
@@ -292,140 +250,54 @@ export default {
                     }
                 });
         },
-
-        // Funzione per mettere in pausa la riproduzione della radio
+        // Ottiene l'immagine della radio, mostrando una gif se è in riproduzione
+        getRadioImage(radio) {
+            if (radio.playing) {
+                return 'https://whiz-kid.de/images/sound.gif';
+            } else {
+                return radio.favicon ? radio.favicon : "https://cdn-icons-png.freepik.com/256/508/508206.png?semt=ais_hybrid";
+            }
+        },
+        // Interrompe la riproduzione per una radio
         pauseRadio(radio) {
             radio.audioPlayer.pause();
             radio.playing = false;
         },
-
-        // Funzione per mettere in pausa tutte le radio
+        // Interrompe la riproduzione per tutte le radio
         pauseAllRadios() {
-            this.radios.forEach(radio => {
+            this.radio.forEach(radio => {
                 if (radio.playing) {
                     this.pauseRadio(radio);
                 }
             });
         },
-
-        // Funzione per aggiungere o rimuovere la radio dai preferiti
-        toggleFavorite(radio) {
-            radio.favorite = !radio.favorite;
-            if (!radio.favorite) {
-                this.removeFavorite(radio);
-            } else {
-                this.saveFavorites();
-            }
-        },
-
-        // Funzione per salvare i preferiti nell'archiviazione locale
-        saveFavorites() {
-            const favorites = this.radios.map(radio => ({ changeuuid: radio.changeuuid, favorite: radio.favorite }));
-            localStorage.setItem('favorites', JSON.stringify(favorites));
-        },
-
-        // Funzione per rimuovere una radio dai preferiti
-        removeFavorite(radio) {
-            let favorites = JSON.parse(localStorage.getItem('favorites')) || [];
-            favorites = favorites.filter(fav => fav.changeuuid !== radio.changeuuid);
-            localStorage.setItem('favorites', JSON.stringify(favorites));
-        },
-
-        // Funzione per recuperare i preferiti dall'archiviazione locale
-        retrieveFavorites() {
-            const favorites = JSON.parse(localStorage.getItem('favorites')) || [];
-            this.radios.forEach(radio => {
-                const fav = favorites.find(f => f.changeuuid === radio.changeuuid);
-                radio.favorite = fav ? fav.favorite : false;
-            });
-        },
-
-        // Funzione chiamata quando il componente viene creato
-        created() {
-            this.getRadios();
-            this.retrieveFavorites();
-        }
-    }
-};
+    },
+    // Metodo eseguito al momento della creazione del componente
+    created() {
+        this.getRadios();
+    },
+}
 </script>
 
 <style scoped>
+/* Stili per la barra di navigazione */
 .navbar {
     position: fixed;
-    bottom: 0;
+    bottom: 0; /* Posiziona la navbar in basso */
     left: 0;
     width: 100%;
     background-color: #fff;
-    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.3); /* Sposta l'ombra verso il basso */
     display: flex;
     align-items: center;
     justify-content: space-around;
     padding: 10px;
 }
 
+/* Stili per il logo della radio */
 .radio-logo {
     width: 50px;
     height: 50px;
     border-radius: 25px;
-}
-
-.sound-wave {
-    display: flex;
-    align-items: center;
-    height: 20px;
-    margin-left: 10px;
-    margin-top: 2px;
-}
-
-.bar {
-    width: 4px;
-    height: 100%;
-    margin: 0 2px;
-    background-color: #333;
-    animation: pulse 0.8s infinite ease-in-out alternate;
-}
-
-.bar:nth-child(1) {
-    animation-delay: 0s;
-}
-
-.bar:nth-child(2) {
-    animation-delay: 0.1s;
-}
-
-.bar:nth-child(3) {
-    animation-delay: 0.2s;
-}
-
-.bar:nth-child(4) {
-    animation-delay: 0.3s;
-}
-
-@keyframes pulse {
-    0% {
-        transform: scaleY(1);
-    }
-
-    100% {
-        transform: scaleY(1.5);
-    }
-}
-
-.heart-container {
-    display: inline-block;
-    cursor: pointer;
-    margin-left: 5px;
-    margin-top: 2px;
-}
-
-.heart {
-    width: 20px;
-    height: 18px;
-    background: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z" fill="%23C1C1C1"/></svg>') center no-repeat;
-    background-size: 100%;
-}
-
-.heart.liked {
-    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3z" fill="%23FF0000"/></svg>');
 }
 </style>

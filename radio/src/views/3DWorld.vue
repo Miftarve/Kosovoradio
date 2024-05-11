@@ -195,7 +195,7 @@ export default {
         },
         // Recupera le radio dalla fonte dati
         async fetchRadios() {
-            const response = await fetch('https://de1.api.radio-browser.info/json/stations/search?limit=400&hidebroken=true&has_geo_info=true&order=clickcount&reverse=true');
+            const response = await fetch('https://de1.api.radio-browser.info/json/stations/search?limit=800&hidebroken=true&has_geo_info=true&order=clickcount&reverse=true');
             const data = await response.json();
             return data;
         },

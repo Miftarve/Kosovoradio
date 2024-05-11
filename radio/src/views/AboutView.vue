@@ -116,18 +116,28 @@ export default {
     },
     // Interrompi la riproduzione della radio
     stopRadio() {
-      if (this.audio) {
+      if (this.audio instanceof Audio) {
         this.audio.pause();
-        this.audio = null;
-        this.sheet = false;
-        this.selectedRadio = null;
+        this.audio = null; // Resetta l'elemento audio
       }
+      this.sheet = false;
+      this.selectedRadio = null;
+      this.activeRadioIndex = null; // Resetta l'indice della radio attiva
+    },
+
+    // Metodo per gestire il cambio di route
+    handleRouteChange() {
+      this.stopRadio();
     },
   },
   created() {
     const storedFavorites = JSON.parse(localStorage.getItem('favorites'));
     this.favorites = storedFavorites ? storedFavorites : [];
     this.filterFavorites(); // Filtra i preferiti al caricamento della pagina
+    this.$router.beforeEach((to, from, next) => {
+      this.handleRouteChange();
+      next();
+    });
   },
   setup() {
     const display = useDisplay();

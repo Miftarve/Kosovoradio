@@ -234,12 +234,19 @@ methods: {
     isPlaying(radio) {
       return this.selectedRadio === radio && this.audio && !this.audio.paused;
     },
+    handleRouteChange() {
+      this.stopRadio();
+    },
   },
   created() {
     this.getRadios();
     const favorites = localStorage.getItem('favorites');
     this.favorites = favorites ? JSON.parse(favorites) : [];
     window.addEventListener('beforeunload', this.stopRadio);
+    this.$router.beforeEach((to, from, next) => {
+      this.handleRouteChange();
+      next();
+    });
   },
   // Prima del smontaggio del componente, rimuovi l'ascoltatore di evento
   beforeUnmount() {
